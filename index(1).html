@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>探究の進め方アプリ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: 落ち着いた学校の道具。生徒が迷わず「今ここ」と「次の一歩」を見つける
+   IDEA: 探究の進め方マップ（A3の紙）を、押せる地図と手帳にしたもの
+   PICTURE: 3列×段階のマップそのもの。押したコマの中身が下に開く
+   COLOUR and TYPE: 白い紙＋研究系の紫・行動系の緑・創作系の赤茶。BIZ UDPゴシック
+   LAYOUT: 上に切り替えと見出し、マップ→詳細。600px以下は列を縦に積む */
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#141416);--paper:light-dark(#f6f5f0,#1d1d21);--ink:light-dark(#222222,#ececea);--mut:light-dark(#5f5e5a,#a9a8a2);--line:light-dark(#d3d1c7,#3a3a40);
+--r:light-dark(#534AB7,#AFA9EC);--rt:light-dark(#EEEDFE,#26215C);--a:light-dark(#0F6E56,#5DCAA5);--at:light-dark(#E1F5EE,#04342C);--c:light-dark(#993C1D,#F0997B);--ct:light-dark(#FAECE7,#4A1B0C);--hi:light-dark(#222222,#f1efe8)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "BIZ UDPGothic","Hiragino Sans","Yu Gothic",sans-serif;overflow-x:clip}
+button,input,textarea,select{font:inherit;color:inherit}
+header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:10px max(4vw,14px)}
+.top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+h1{font-size:22px;margin:0;line-height:1.2}
+.mode{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.mode button{border:0;background:none;padding:8px 16px;min-height:40px;cursor:pointer}
+.mode button[aria-pressed=true]{background:var(--hi);color:var(--bg)}
+nav{display:flex;gap:6px;overflow-x:auto;margin-top:8px}
+nav a{flex:none;text-decoration:none;color:var(--ink);padding:8px 14px;border-radius:8px;min-height:40px;display:flex;align-items:center}
+nav a[aria-current=page]{background:var(--paper);font-weight:700}
+main{padding:20px max(4vw,14px) 60px;max-width:1240px;margin:0 auto}
+h2{font-size:28px;line-height:1.15;margin:0 0 6px}h3{font-size:18px;margin:22px 0 8px}
+.lead{color:var(--mut);margin:0 0 16px}
+.note{font-size:14px;color:var(--mut)}
+.map{display:grid;grid-template-columns:7em repeat(3,minmax(0,1fr));gap:8px 12px;align-items:stretch}
+.ph{font-size:13px;color:var(--mut);display:flex;align-items:center;justify-content:center;text-align:center}
+.cell{border:1.5px solid;border-radius:10px;padding:16px 12px 6px;cursor:pointer;text-align:center;background:var(--t);border-color:var(--k);color:var(--k);min-height:76px;display:flex;flex-direction:column;justify-content:center;position:relative}
+.cell b{font-size:17px}.cell small{font-size:13px}
+.cell .lab{position:absolute;left:8px;top:5px;font-size:12px;font-weight:700}
+.cell .ref{display:block;text-align:right;font-size:12px;margin-top:2px}
+.cell.here::after{content:"今ここ";position:absolute;right:8px;top:4px;font-size:12px;font-weight:700}
+.cell[aria-expanded=true]{outline:3px solid var(--k);outline-offset:2px}
+.R{--k:var(--r);--t:var(--rt)}@media(max-width:600px){.map .cell{order:var(--o)}}.A{--k:var(--a);--t:var(--at)}.C{--k:var(--c);--t:var(--ct)}
+.A .cell,.cell.A{border-style:dashed}.cell.C{border-style:dotted;border-width:2.5px}
+.start{grid-column:2/5;text-align:center;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--paper);font-weight:700}
+.detail{margin-top:18px;border:1.5px solid var(--k);border-radius:12px;padding:16px 18px;background:var(--bg)}
+.detail h3{margin-top:0;color:var(--k)}
+.star{font-weight:700;padding:8px 12px;border-radius:8px;background:var(--t);color:var(--k);margin:6px 0}
+.opt{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:6px 0}
+.ask{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.btn{border:1px solid var(--line);background:var(--paper);border-radius:8px;padding:8px 14px;min-height:44px;cursor:pointer;text-decoration:none;color:var(--ink);display:inline-flex;align-items:center}
+.btn.p{background:var(--hi);color:var(--bg);border-color:var(--hi)}
+.two{display:grid;grid-template-columns:15em minmax(0,1fr);gap:24px}
+.list{display:flex;flex-direction:column;gap:4px}
+.list button{text-align:left;border:0;background:none;padding:9px 12px;border-radius:8px;cursor:pointer;min-height:42px}
+.list button[aria-current=true]{background:var(--paper);font-weight:700}
+ol.steps{list-style:none;padding:0;margin:0;counter-reset:s}
+ol.steps li{counter-increment:s;background:var(--paper);border-radius:8px;padding:9px 12px;margin:6px 0;display:grid;grid-template-columns:9em minmax(0,1fr);gap:10px}
+ol.steps li b::before{content:counter(s) "　"}
+table{border-collapse:collapse;width:100%;font-size:15px;margin:6px 0}
+th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}th{background:var(--paper)}
+.field{margin:12px 0}.field label{font-weight:700;display:block}.field .h{font-size:14px;color:var(--mut)}
+textarea,input[type=text],select{width:100%;border:1px solid var(--line);border-radius:8px;padding:10px;background:var(--bg);font-size:16px}
+textarea{min-height:76px;resize:vertical}
+.checks{background:var(--paper);border-radius:10px;padding:12px 14px;margin:14px 0}
+.checks label{display:flex;gap:10px;align-items:flex-start;padding:5px 0;cursor:pointer}
+.checks input{width:22px;height:22px;flex:none;margin-top:2px}
+.stance{border:1.5px solid var(--line);background:var(--paper);border-radius:10px;padding:12px 14px;font-weight:700}
+details{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:10px 0}summary{cursor:pointer;font-weight:700}
+.hist{border-left:3px solid var(--line);padding:4px 12px;margin:10px 0}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--hi);color:var(--bg);padding:10px 16px;border-radius:8px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+.tonly{display:none}body.teacher .tonly{display:revert}body.teacher .sonly{display:none}
+:focus-visible{outline:3px solid #185FA5;outline-offset:2px}
+@media(max-width:600px){h2{font-size:24px}.map{grid-template-columns:minmax(0,1fr)}.ph,.start{display:none}.map .cell{min-height:64px}.two{grid-template-columns:minmax(0,1fr)}.list{flex-direction:row;overflow-x:auto}.list button{flex:none}ol.steps li{grid-template-columns:minmax(0,1fr);gap:2px}
+.stack thead{display:none}.stack tr{display:grid;padding-block:8px}.stack td{display:flow-root;border:0;padding:3px 0;padding-inline-start:8em}.stack td::before{content:attr(data-l);float:inline-start;width:7.5em;margin-inline-start:-8em;color:var(--mut)}.stack td:empty{display:none}}
+@media(prefers-reduced-motion:reduce){.toast{transition:none}}
+</style></head><body>
+<header><div class="top"><h1>探究の進め方</h1>
+<div class="mode" role="group" aria-label="使う人"><button id="mS" aria-pressed="true">生徒</button><button id="mT" aria-pressed="false">先生</button></div></div>
+<nav id="nav"><a href="#map">マップ</a><a href="#cards">技カード</a><a href="#gates">関門シート</a><a href="#memo" class="sonly">わたしの探究メモ</a><a href="#guide" class="tonly">指導の手引き</a></nav></header>
+<main id="main"></main><div class="toast" id="toast" role="status"></div>
+<footer class="note" style="text-align:center;padding:0 16px 30px">探究の進め方アプリ 第1版（2026.11.26）　書いた内容は、この端末のこのブラウザにだけ保存されます。提出や共有は各ページの「コピー」から。</footer>
+<script>
+{
+const DATA = {"D":{"r":[{"h":"研究系","s":"知りたい・確かめたい"},{"h":"問いを立てる","s":"調べる・聞く・絞る","acts":["気になることを書き出す","本・論文・統計で、すでに分かっていることを調べる","詳しい人に聞く","「分かっていること」と「確かめたいこと」を分ける","問いを一文にする"],"q":"その問いに答えるには、何が分かればいい？"},{"h":"データを集める","s":"方法を選んで集める","acts":["誰・何を対象にするか決める","どう記録するか決め、本番前に小さく試す","今の集め方で抜ける人・場面を考える"],"b":{"t":"何を確かめたい？","o":[["経験・意味・経緯","質的","聞き取り、観察、自由記述、日記や記録の分析"],["人数・程度・違い","量的","数える、測る、選択式の質問紙、既存の統計"],["広がりと中身の両方","組み合わせ","聞いて論点を見つけてから広く尋ねる／数の違いを詳しく聞く"],["すでに分かっていること","文献・資料","先行研究、統計、歴史資料を比べる"]]},"q":"今の集め方では、誰の経験が抜ける？"},{"h":"分析して考察する","s":"比べる・例外を探す","acts":["集めたものを並べる・分類する・比べる","共通点・違い・予想に合わないものを探す","人数・割合は分母を、測定値は単位・条件を、言葉は意味ごとのまとまりを示す","「言えること」と「まだ言えないこと」を分ける"],"b":{"t":"今の証拠でどこまで言える？","o":[["まだ足りない","戻る","R2「データを集める」へ。対象や方法を足す"],["別の疑問が出た","戻る","R1「問いを立てる」へ。問いを更新する"],["言えることが見えた","進む","R4「論文・発表にする」へ"]]},"q":"予想と合わなかったデータは、どう説明する？"},{"h":"論文・発表にする","s":"読んでもらい直す","acts":["問い・方法・結果・考察をつなぐ","人に読んでもらい、説明が足りない所を直す","残った疑問と限界も書く"],"q":"読んだ人は、同じ方法でもう一度確かめられる？"},{"h":"残るもの：知見","s":"次の問いが生まれる"}],"a":[{"h":"行動系","s":"やってみたい・変えたい"},{"h":"小さくやってみる","s":"絞って一度やる","acts":["似た取り組みを調べる","関わる人・許可が必要な人に相談する","対象・時間・場所を絞り、一度実施する","何が起きたら成功かを、先に一文で書く"],"q":"一回目で確かめたいことは何？"},{"h":"参加者の声を集める","s":"起きたことも記録","acts":["感想だけでなく、実際に起きたことを観察・記録する","参加しなかった人、途中でやめた人にも聞く","人数・時間・写真など、残せるものを残す"],"b":{"t":"何を知りたい？","o":[["参加した人の経験","質的","終了後の聞き取り、ふりかえりシート、当日の観察メモ"],["どのくらい来た・続いた","量的","参加人数、回数、継続率、短い選択式アンケート"],["来なかった人の事情","抜けを補う","関心はあるが来ていない人に、参加を考えた場面を聞く"]]},"q":"来た人だけに聞いて、見落としている声は？"},{"h":"足りないものを探す","s":"目指したことと比べる","acts":["目指したことと実際に起きたことを比べる","うまくいった点も残す","「誰にとって、何が足りないか」を確かめる"],"b":{"t":"工夫の効果を言いたいとき","o":[["比べるものがある","比較","前回・別の回・別の集団と比べる。ほかに変わった条件も書く"],["比べるものがない","分けて書く","「観察できた変化」と「原因の推測」を分ける"],["もう一度やる","戻る","A1へ。変える点を一つ決めて、小さくやり直す"]]},"q":"その変化の原因は、本当にその工夫？"},{"h":"仕組みにする","s":"役割・手順を残す","acts":["続けるための役割・手順・道具・費用を整理する","別の人に運営を試してもらう","引き継ぎ用の記録を作る"],"q":"あなたがいなくても回る？","qs":"自分がいなくても回る？"},{"h":"残るもの：仕組み","s":"次の人が動ける"}],"c":[{"h":"創作系","s":"つくりたい・表したい"},{"h":"まず試作する","s":"調べて粗く形に","acts":["つくりたいもの・届けたい相手を一文で仮置きする","参考になる作品・技法・製品を調べる","アイデアを複数出してから一つ選ぶ","ラフ・模型・短い文章・紙の画面で、試したい部分だけ形にする"],"q":"この試作で、何を確かめたい？"},{"h":"人に試してもらう","s":"伝わり方を記録","acts":["見る・読む・使うなど、作品に合う形で触れてもらう","先に説明せず、迷った所を見る","意図しなかった反応も記録する"],"b":{"t":"何を確かめたい？","o":[["使いやすさ・機能","道具・アプリ","操作の成否、止まった箇所、所要時間、使いながら考えたこと"],["表現・伝わり方","作品","何が伝わったか、印象に残った所、受け手の解釈を聞く"],["どのくらいの人に伝わる","量的","複数の人に同じ質問をし、伝わった人の割合を見る"]]},"q":"誰に試してもらうと、届けたい相手に近い？"},{"h":"作り直す","s":"変える・残すを決める","acts":["自分の意図と実際の反応を比べる","変える部分と残す部分を決め、理由を書く","複数の案をつくって比べる","試作ごとに変えた点を記録する"],"b":{"t":"反応が意図と違ったら","o":[["直す","表現を変える","意図が伝わるように作り直す"],["生かす","意図を見直す","思わぬ読みを新しい狙いにする"],["残す","こだわりを守る","変えない理由を言葉にする"],["もう一度試してもらう","戻る","C2へ。直した版で反応を確かめる"]]},"q":"好評な案を選ばないとしたら、その理由は？"},{"h":"作品を発表する","s":"過程と理由も示す","acts":["届けたい相手と発表の場を考える","作品に加え、試作の変化と選んだ理由を示す","次につながる反応を受け取る"],"q":"完成品だけで、あなたの探究は伝わる？","qs":"完成品だけで、自分の探究は伝わる？"},{"h":"残るもの：作品","s":"次に作りたいもの"}]},"STAR":{"r1":"気になることを書き出す","r2":"誰・何を対象にするか決める","r3":"集めたものを並べる・分類する・比べる","r4":"問い・方法・結果・考察をつなぐ","a1":"対象・時間・場所を絞り、一度実施する","a2":"感想だけでなく、実際に起きたことを観察・記録する","a3":"目指したことと実際に起きたことを比べる","a4":"引き継ぎ用の記録を作る","c1":"ラフ・模型・短い文章・紙の画面で、試したい部分だけ形にする","c2":"見る・読む・使うなど、作品に合う形で触れてもらう","c3":"自分の意図と実際の反応を比べる","c4":"作品に加え、試作の変化と選んだ理由を示す"},"WAZA":{"1":"技1・9","2":"技2〜4・10","3":"技5・6","4":"技7"},"WAZA_R2":"技2〜4・9・10","KANMON":{"2":"関門2・4・5","4":"関門7"},"CARDS":[{"no":1,"title":"問いを絞る","use":"R1・A1・C1","aim":"今回、何を知りたいか・試したいか・形にしたいかを、手の届く大きさに絞る。","sec":[{"h":"まず2つ（3〜5は、絞りきれないときに）","steps":[["書き出す","気になること・やってみたいこと・つくりたいものを書き出す。書いている間は評価しない。"],["仮置きする","今回「〜を知りたい」「〜を試したい」「〜をつくりたい」のどれかで一文にする。あとで変えてよい。"],["広げる","形を変えてみる。変量（規模や対象を変える）／逆転（裏返す）／転移（場所を移す）／欠失（条件を外す）。"],["見る","解剖＝何でできている／系統＝これまでどうだった／生態＝誰・何とつながる／予測＝この先どうなる。手薄な角度から見直す。"],["絞る","手が届く（時間・対象・許可）か／すでに答えが出ていないか／誰にとって意味があるか。研究系なら、閉じた問いと開いた問いを1回書き換える。"]]},{"h":"列を選ぶ目安","list":["知りたい → 研究系R1　試したい → 行動系A1　形にしたい → 創作系C1（途中で移ってよい）"]},{"h":"例：仮置き → 絞ったあと","list":["研究系：坂の名前が気になる → 函館の坂の名前は、いつ・何に由来してついた？（系統）","行動系：将棋の会をやってみたい → 一度来た初心者が、次も来るのはどんなとき？（逆転）","創作系：初心者向けの将棋アプリをつくりたい → 初めての人は、どの画面で止まる？（解剖）"]},{"note":"「広げる」「見る」は、太刀川英輔『進化思考』の「変異」「適応」の考え方を、問いづくりに借りたものです。"}]},{"no":2,"title":"誰に聞く？","use":"R2・A2・C2","aim":"聞く相手で、分かることも抜けることも変わる。選んだ理由を言えるようにする。","sec":[{"h":"相手ごとの「分かること・抜けること」","table":{"head":["相手","分かること","抜けやすいこと","向く方法"],"w":[1.55,1.95,1.9,1.87],"rows":[["当事者・参加した人","経験、良かった点・困った点","関わらなかった人の事情","聞き取り、ふりかえりシート、観察"],["関心はあるが関わっていない人","ためらう事情、届いていない理由","接触しにくく、数が集まりにくい","声をかけての聞き取り、学年への質問紙"],["運営・関係者","これまでの経緯、制約","参加者の本音","聞き取り"],["詳しい人・先行事例","うまくいく条件、知られていること","自分たちの場との違い","聞き取り、本・論文・資料"],["広く（学年・全校など）","どのくらいいるか、違いはあるか","理由の中身","選択式の質問紙、既存の統計"]]}},{"h":"方法の選び方","list":["経験・意味・経緯を知りたい → 聞き取り、観察、自由記述（質的）","人数・程度・違いを知りたい → 数える、測る、選択式の質問紙（量的）","両方 → 聞いて論点を見つけてから広く尋ねる／数の違いを詳しく聞く","創作系では「届けたい相手に近い人」が当事者。作り手仲間は「詳しい人」"]},{"h":"自分に聞くこと","list":["その人たちに聞いて、誰の声が抜ける？","その人たちを選んだ理由を、一文で言える？"]}]},{"no":3,"title":"質問をつくる","use":"R2・A2・C2","aim":"聞き方ひとつで、返ってくる答えが変わる。本番の前に直す。","sec":[{"h":"直し方（よくある5つ）","table":{"head":["気をつけること","よくない例","よい例"],"w":[1.95,2.66,2.66],"rows":[["誘導しない","この画面、分かりやすいですよね？","この画面で、次に何をすればいいと思いますか？"],["一度に二つ聞かない","時間や場所に満足していますか？","時間について／場所について、分けて聞く"],["意見より経験を聞く","なぜ参加しないのですか？","最後に参加を考えたとき、何がありましたか？"],["前提を置かない（経験を詳しく聞くとき）","楽しかったですか？／どこが楽しかった？","印象に残った場面はありますか。そのとき、どう感じましたか？"],["選択肢を閉じない（質問紙）","「はい／いいえ」だけ","「その他」「当てはまらない」を入れる"]]}},{"h":"聞き取りのコツ（経験を詳しく知りたいとき）","list":["具体的な場面を聞く（「そのとき、どうした？」）","相手の言葉を使って掘る（「〇〇って、どういうこと？」）","録音・メモは、先に許可をもらう"]},{"h":"質問紙のコツ（人数や違いを知りたいとき）","list":["1問に論点は1つ。選択式で数をそろえ、理由は自由記述で補う","本番の前に2〜3人に答えてもらい、迷った問いを直す"]},{"h":"聞く前の約束","list":["目的を伝える／断ってよいと伝える／名前を出さない","全校への質問紙や、個人的な内容を聞くときは先生に相談する"]}]},{"no":4,"title":"記録する","use":"R2・A2・C2","aim":"あとで比べられる形で残す。「起きたこと」と「自分の解釈」は分けて書く。","sec":[{"h":"記録の型","table":{"head":["日付","誰・どこ（名前は記号で）","起きたこと・相手の言葉","自分の解釈・気づき"],"w":[0.9,1.75,2.5,2.12],"rows":[["11/20","Aさん（1年・初参加）","「強い人ばかりだと思って、入口で迷った」","入る前の印象が壁かも？"],["11/22","理科室・日なたの容器","水温 23.5℃（3回目）。室温 20℃、14時","1回目より高い。日差しの角度？"],["11/25","試作2版・Bさん","2画面目で15秒止まり「次どこ？」","ボタンの言葉が分かりにくい？"],["","","",""]]}},{"h":"場面ごとのポイント","list":["聞き取り：相手の言葉はそのまま「」で書く。要約は別の欄に","観察：何を見るかを先に決める（何人／何分／どこで止まったか）","試作：版ごとに、日付・変えた点・その理由・もらった反応","人数・割合：「何人中何人」を残す","測定：単位・測った条件・回数を残す"]},{"h":"自分に聞くこと","list":["一週間後の自分が読んで、何が起きたか分かる？"]}]},{"no":5,"title":"整理する","use":"R3・A3・C3","aim":"集めたものを並べ替えて、共通点・違い・例外を見えるようにする。","sec":[{"h":"言葉のデータ（聞き取り・自由記述・観察メモ）","steps":[["切る","1枚に1つの意味になるよう、付箋やカードに分ける"],["集める","似ているものを近くに置く。最初から分類名を決めない"],["名前をつける","まとまりに、中身を表す短い名前をつける"],["残す","どこにも入らないものは捨てずに残す。例外がヒントになる"]]},{"h":"数のデータ（質問紙・回数・測定）","list":["人数・割合：表にして、分母と割合を出す（何人中何人＝何％）","測定：単位をそろえ、条件ごと・回ごとの値を並べる","平均だけでなく、ばらつきや極端な値も見る","グラフは、比べたいもの同士を隣に並べる"]},{"h":"比べる軸を決める","list":["学年・経験の有無・参加の前後・試作の版など、何と何を比べるかを先に決める"]}]},{"no":6,"title":"考察する","use":"R3・A3・C3","aim":"結果から「何が言えて、何がまだ言えないか」を、根拠とともに書く。","sec":[{"h":"考察の5つの動き","steps":[["結果を一文で","人数なら「何人中何人」、測定なら単位・条件・回数まで書く"],["比べる","予想と／先行研究と／別の集団や前の回と"],["理由を考える","なぜそうなったか、説明を2つ以上出す"],["言える強さを選ぶ","「〜と言える」「〜の可能性がある」「この結果からは〜とまでは言えない」"],["次の問いを書く","残った疑問と、次に確かめたいこと"]]},{"h":"考察ではないもの","list":["結果の言い直し（「60％が〜と答えた。つまり〜」）","感想（「大切だと思った」）","飛躍（10人に聞いて「高校生は〜」と書く）","予想に合わないデータを書かない"]},{"h":"型ごとの考察","list":["行動系：目指したことと起きたことの差と、その理由","創作系：意図と反応の差と、変えた・残した理由"]},{"h":"書き出しの例","list":["この違いは〜によると考えられる。ただし〜の可能性もある。","今回の対象は〜に限られるため、〜までは言えない。"]}]},{"no":7,"title":"書く・伝える","use":"R4・A4・C4","aim":"誰に、何を持ち帰ってほしいかを決めてから組み立てる。","sec":[{"h":"骨組み","steps":[["問い","何を確かめたかったか"],["なぜ","なぜその問いが大事か"],["方法","誰に・何を・どう集めたか"],["結果","分かったこと（事実）"],["考察","結果から言えること・言えないこと"],["残った疑問","次の人への問い"]]},{"h":"型ごとに残すもの","list":["研究系：論文・ポスター。方法を、ほかの人が同じことをできるくらい書く","行動系：実施の記録と、引き継ぎ資料","創作系：作品と、試作の変化・選んだ理由"]},{"h":"仕上げる前に","list":["結果と考察を分けて書けているか","人に読んでもらい「この探究の問いは何？」と答えてもらう。ずれたら直す"]},{"h":"批評してもらう相手を選ぶ（関門7）","list":["当事者・届けたい相手に近い人・詳しい人から、自分で選ぶ","聞きたいことを1〜2つ決めてから見せる","もらった声は一人の見方。取り入れるかどうかは自分で決め、理由を残す"]}]},{"no":8,"title":"出典を示す","use":"すべてのコマ","aim":"人の言葉や調べたことを使ったら、どこから来たかを示す。調べ始めた日から記録する。","sec":[{"h":"書き方の例","table":{"head":["種類","書き方"],"w":[1.5,5.77],"rows":[["本","著者名（出版年）『書名』出版社"],["論文","著者名（発行年）「論文名」『雑誌名』巻号、ページ"],["Webページ","作成者「ページ名」URL（閲覧日）"],["聞き取り","〇〇さん（立場）への聞き取り、日付"],["統計","作成機関「調査名」（年）"]]}},{"h":"引用・写真・作品を使うとき","list":["そのまま使う → 「」でくくり、出典を書く","自分の言葉でまとめる → それでも出典は書く","写真・図・グラフも、作った人と出どころを書く","人の顔が写った写真、他人の作品・音楽・キャラクターなどは、使う前に許可が要るかを確かめる"]},{"h":"生成AIを使ったら","list":["どの場面で、何に使ったかを書く","AIの答えは出典にしない。元の資料を自分で確かめて、その資料を示す"]}]},{"no":9,"title":"調べる・資料を比べる","use":"R1・A1・C1・R2","aim":"すでに分かっていることを確かめ、自分で確かめる部分を絞る。","sec":[{"h":"5つの動き","steps":[["検索語を考える","言い換え・大きい言葉・専門用語を3つ以上出す（例：「坂 名前 由来」「函館 地名 歴史」）"],["探す場所を選ぶ","本（学校・市の図書館、NDLサーチ）／論文（CiNii、J-STAGE）／統計（e-Stat、市の統計）／新聞／作品・製品・アプリ"],["確かめる","誰が・いつ・何のために作ったか。元の資料（一次資料）はどれか"],["比べる","資料どうしの同じ点・違う点。違いは、時期・立場・対象の差から来ていない？"],["書き分ける","分かったこと／資料で食い違うこと／自分で確かめること"]]},{"h":"資料メモ","table":{"head":["資料","何が書いてあるか","信頼できる点・気になる点","残った疑問"],"w":[1.6,1.95,1.95,1.77],"rows":[["市の観光サイトの坂の紹介","坂ごとの名前の由来","作成者は明記。元の資料が書かれていない","元の資料は何？"],["","","",""],["","","",""]]}},{"h":"自分に聞くこと","list":["「調べて分かること」と「自分で確かめないと分からないこと」は、どこで分かれる？","出典は、見つけたその場で記録した？（技8）"]}]},{"no":10,"title":"観察・測定・実験","use":"R2・A2・C2","aim":"見るもの・測るもの・比べ方を、始める前に決める。","sec":[{"h":"まず、今回やりたいことを選ぶ","table":{"head":["今回やりたいこと","最初に決めること","動きの例"],"w":[1.75,2.45,3.07],"rows":[["様子を知る（観察）","いつ・どこで・何を見る？","校内で、人が立ち止まる場所と様子を記録する"],["数や程度を知る（測定）","何を・どの単位で・何回測る？","場所ごとの明るさを、時刻をそろえて測る"],["工夫による違いを確かめる（実験・比較）","何を変え、何をそろえて比べる？","案内表示の2案で、目的地までの時間を比べる"]]}},{"h":"進め方","steps":[["決める","上の表の「最初に決めること」を書く。記録のしかた（表・写真・動画）も決める"],["小さく試す","本番の前に1回やって、記録しにくい所やばらつきを確かめる"],["くり返す","同じやり方で複数回。結果がそろわないときは原因を探す"],["分けて書く","見たこと・測った値と、自分の解釈を分ける（技4）"]]},{"h":"違いを確かめるときの計画表（例）","table":{"head":["変える条件","そろえる条件","測るもの（単位）","回数"],"w":[1.85,2,2.27,1.15],"rows":[["日なた／日かげ","容器・水の量・時刻","水温（℃）","各3回"],["説明文あり／なし","同じ課題・同じ端末","操作を終えるまでの時間（秒）","各5人"],["初心者卓あり／なし","曜日・時間帯・告知のしかた","初参加のうち2回目も来た人数","各2回"]]}},{"h":"自分に聞くこと","list":["結果が変わったのは、本当に変えた条件のせい？　ほかに変わったものはない？"]}]}],"TEACHER":[["1 問いを絞る","「知りたい・試したい・形にしたい」のどれかで一文にできているか。3〜5（広げる・見る・絞る）で生徒が迷っているときは、教員が1つ例示して問いかける。その後、生徒が使う見方を選ぶ"],["2 誰に聞く？","その人たちを選んだ理由は？　その人たちに聞いて、誰の声が抜ける？"],["3 質問をつくる","質問を一つ読み上げてもらう。誘導していないか、二つ聞いていないか。相手の負担・同意・名前の扱いは？"],["4 記録する","事実と解釈が分かれているか。人数なら分母、測定なら単位・条件・回数があるか"],["5 整理する","例外を捨てていないか。何と何を比べるかが決まっているか"],["6 考察する","結果の言い直しや感想で終わっていないか。言える強さが根拠に見合っているか"],["7 書く・伝える","結果と考察が分かれているか。読み手が問いを言い当てられるか。批評の相手を本人が選んでいるか（関門7）"],["8 出典を示す","調べ始めから記録しているか。引用・要約・AI利用の区別ができているか"],["9 調べる・資料を比べる","誰が・いつ作った資料か確かめているか。分かったことと自分で確かめることを書き分けているか"],["10 観察・測定・実験","やりたいこと（様子／数や程度／違い）に合った決め方か。比べるなら変える条件は1つか。単位・回数は決まっているか"]],"GATES":[{"no":2,"title":"集まったら、何が分かる？","when":"いつ：R2・A2・C2の前","aim":"聞く・配る・測る・調べる前に、「今回知りたいこと」から逆にたどって決め、試運転する。","fields":[["① 今回、何を知りたい・確かめたい・判断したい？","自分の言葉で一文",0.55],["② そのために、どんな情報が要る？","経験の中身／人数・割合／測った値／資料の記述　から選んで丸で囲む",0.55],["③ 誰から・何から・どうやって？","その集め方で、誰の声や場面が抜ける？",0.55],["④ 実際の質問文・測り方（1〜2つ）","",0.65],["⑤ 試運転：1人に答えてもらう／1回測る","出てきた答え・値（試）。本番のデータとは分ける",0.62],["⑥ 今回の相手・条件で確かめられたこと／本番の相手・条件で、まだ確かめたいこと","",0.72]],"checks":["①を聞いて、今回知りたいことが相手に伝わった","⑤の答え・値を、記録の表（関門4）のどこに入れるか指せた","本人が「この答えで分かること／まだ分からないこと」を説明できた","足りない質問・選択肢・比べる相手を一つ直した（直さないなら、その理由を言えた）"],"fail":"集め方は技2・9・10、聞き方は技3、比べ方は技5","exLabels":["つながっていない：","試運転で直した："],"ex":["① 初心者向けの席を残すか判断したい → ④「探究は大切だと思いますか」。この答えでは①が分からない（①が「探究への意識の割合を知りたい」なら使える）","① 初心者向けの席が役に立ったかを知りたい ④「初心者向けの席に座りましたか」「座ってどうでしたか。座らなかった人は、なぜですか」→ 分かること：席を使った・使わなかった理由／まだ分からないこと：席がなくても来たか（前回との比較が要る）。⑥ 友だちで聞き方は確かめた。本番の初参加の人で、まだ確かめたい"]},{"no":4,"title":"何を記録する？","when":"いつ：活動・試作・観察の前","aim":"「やったけど、何が起きたかわからない」を防ぐ。記録することを始める前に決め、1件だけ試しに書く。","fields":[["① この活動で確かめたいこと","関門2の①と同じでよい",0.6],["② 何が分かれば「うまくいった／いかなかった／まだ分からない」と言える？","",0.8],["③ 記録の表（見出しを先に書き、試しに1件書く）","",1.5],["④ 誰が・いつ・どうやって記録する？","記録係／写真／メモ／数える　など",0.62]],"table":{"at":2,"cols":["時刻・場面","","","自分の解釈"]},"checks":["②で欲しい情報が、③の表のどこに入るかを指せる","③に、試しの1件（仮でよい）が書いてある","「起きたこと」と「自分の解釈」が別の欄になっている","記録する人とタイミングが決まっている"],"fail":"技4、測るなら技10","exLabels":["つながっていない：","整えた："],"ex":["将棋の会をやる → 終わったら感想を書く","② 初参加の人が最後まで残ったか／また来たいと思ったか ③ 見出し＝時刻・場面／参加人数・途中で帰った人数／初参加の人の言葉／自分の解釈。試しの1件「14:20 初参加のAさん退出『ルールがわからなくて』／説明が足りない？」 ④ 記録係1人、終了時に初参加の人へ聞く"]},{"no":5,"title":"その日のうちに残す","when":"いつ：活動・聞き取りの直後","writeHead":"書き込む（その日のうちに、5分で）","checkHead":"一緒に確かめる（書くのはその日のうちに。見せるのは次の授業でよい）","aim":"記憶が薄れる前に、5分で書く。後から書くと「何が起きたか」が組み立て直せない。","fields":[["日付・やったこと","",0.5],["起きたこと（事実）","数・相手の言葉・場面。数には分母か単位",1.1],["予想と比べて","合った・違った・まだ分からない　を丸で囲む。どこが？",0.62],["自分の解釈","「〜かもしれない」でよい",0.62],["確かめられたこと／まだ判断できないこと／次に試すこと","",0.8]],"checks":["日付がある","「起きたこと」と「自分の解釈」が別の欄に書かれている","（数がある場合）分母か単位がある","「予想と比べて」のどれかが囲んである（「予想どおり」でもよい）","次に試すことが1つ書いてある"],"fail":"技4","exLabels":["つながっていない：","整えた："],"ex":["楽しかった。みんな集中していた。","起きたこと：初参加5人のうち2人が30分で退出（14:20ごろ）。退出した1人「ルールがわからなくて」／予想と比べて：違った（説明は伝わると思っていた）／解釈：最初の説明が足りないかもしれない／次に試すこと：説明のあと、分かったかを一人ずつ聞く"]},{"no":7,"title":"誰に批評してもらう？","when":"いつ：R4・A4・C4の前","writeHead":"書き込む（見せる前と、見せたあと）","aim":"批評してほしい相手と聞きたいことを、自分で選ぶ。もらった声をどう生かすかも、自分で決める。","fields":[["① 批評してほしい相手（自分で選ぶ・1〜3人）","当事者／届けたい相手に近い人／詳しい人／一緒に探究した人　など",0.62],["② その人を選んだ理由","",0.55],["③ その人に聞きたいこと（1〜2つ）","「よかった？」ではなく、確かめたいことを聞く（技3）",0.72],["④ もらった声（そのまま書く）","誰から・いつ。自分の解釈とは分ける",0.95],["⑤ どう生かす？","取り入れる／取り入れない／まだ決めない　を丸で囲む。その理由",0.72]],"checks":["①の相手を、本人が選んでいる","③が、その相手だからこそ答えられる問いになっている","④が、本人の解釈と分けて書かれている","⑤で、取り入れない・まだ決めない場合も理由が書いてある"],"checksExtra":0.42,"note":"批評は、その人の一つの経験・見方。もらった声で探究の価値が決まるわけではない。認めてもらえなくても、探究は続けてよい。","fail":"聞き方は技3、伝え方は技7","exLabels":["つながっていない：","整えた："],"ex":["相手は決めていない（当日の聞き手まかせ）。聞くことは「どうでしたか？」","① 初めて将棋を指す1年生2人と、将棋部の部長 ③「最初の画面で、次に何をすればいいと思った？」（1年生）「初心者が最初につまずくのはどこ？」（部長） ④ 1年生「駒の動かし方の説明がどこにあるか分からなかった」 ⑤ 取り入れる：説明ボタンを最初の画面に移す"]}],"NOTES":["型は入口。コマを順にたどること自体を目的にしない","途中で列を移ってよい（例：行動系の途中で理由を調べたくなったらR2へ）","全部のコマ・全部の方法を経験させる必要はない。今の問いに必要なものを選び、その理由を説明できることを重視する","「アンケート＝量的」「インタビュー＝質的」と固定しない。自由記述を質的に読む、聞き取りで回数を数えることもある","効果を言いたい生徒には「何と比べたか」を確認する","「来た人だけに聞いていないか」「誰の経験が抜けているか」を一緒に確かめる","創作系では、好評な案を採るとは限らない。意図と違う読みをどう扱ったかも探究として評価する","テーマの価値を教員が一方的に判定しない。「意味がない」ではなく「誰にとって意味がある？ 誰に聞けば分かる？」と問う。批評の相手は生徒が選ぶ（関門7）"]};
+const {D,STAR,WAZA,WAZA_R2,KANMON,CARDS,TEACHER,GATES,NOTES}=DATA;
+const COLS={r:{key:'R',name:'研究系'},a:{key:'A',name:'行動系'},c:{key:'C',name:'創作系'}};
+const KS=['r','a','c'];
+const PH=['','段階1<br>始める・仮置き','段階2<br>集める・試す','段階3<br>比べる・見直す','段階4<br>形にする・つなぐ'];
+const STANCE='本人が大切にしている問いを尊重する。試運転では、目的・方法・記録のつながりを確かめる。分からないときは「分からない」と伝え、次に確かめる方法を一緒に考える。';
+const FLOW=[['書く','シートの「書き込む」を埋める'],['試運転する','誰かに質問に答えてもらう／観察・測定を少しやってみる'],['入れてみる','出てきた答えや値を、予定している記録の表に実際に書く'],['話す・一つ直す','本人が「分かること／まだ分からないこと」を話し、一つ直す']];
+const RULES=['正解を知っている必要はない。一緒に試して、つながっていない所を見つける','テーマの価値を一方的に判定しない','方法の気になる点は、理由や具体例を添えて伝える（例：「その質問だと、知りたいことが分からないかもしれない」）。直し方は本人と一緒に考える','分からないことは「分からない」と伝え、「ひとこと」に書いて詳しい先生・卒業生につなぐ','いちばんの相手は、一度探究を回した先輩。先輩自身の振り返りにもなる','試運転の答え・値には「試」と書き、本番のデータと分ける'];
+const SEVEN=[['1','仮置き','入口','今回は、知りたい・試したい・形にしたいのどれ？','技カード1'],['2','集める趣旨','集める前','集まったら、何が分かる？','関門2'],['3','小さく試す・許可','本番の前','試運転した？ 許可・同意は？','試運転＋校内の決まり'],['4','記録を決める','活動の前','欲しい情報は、表のどこに入る？','関門4'],['5','その日のうちに残す','活動の直後','予想と比べてどうだった？','関門5'],['6','比べる・言える範囲','考察のとき','何と比べた？ どこまで言える？','技カード5・6'],['7','批評の相手を選ぶ','発表の前','誰に何を聞く？ どう生かす？','関門7']];
+const HOW=['マップのコマに書いた「技○」の番号が、そのコマで使うカード','最初から全部を説明しない。止まったときに1枚渡し、1つだけ試させる','カードの「よい例」は答えではなく、比べるための見本として示す','配布時に「人や場所を巻き込むときは、実施前に『校内の決まり』と許可を確認する」と一言添える'];
+const LOCAL=[['人に聞く・調べるときの許可','校外の人への依頼／校内での質問紙／録音・撮影'],['全校・学年への調査の窓口','誰に相談し、いつまでに出すか'],['写真・作品・音楽を使うとき','人の顔が写った写真／他人の作品／発表やWebへの掲載'],['外部の人・場所と関わるとき','連絡の方法／校外活動の届け出／安全の確認'],['生成AIの扱い','使ってよい場面・いけない場面／使ったときの書き方'],['そのほか','']];
+const MEMO=[['memo_1','① 今回、知りたい・試したい・形にしたいこと（一文で）'],['memo_2','② そのために、誰から・何を・どう集める？'],['memo_3','③ 集めたものを、どう整理して読み取る？'],['memo_4','④ 結果を受けて、何を続ける・変える・問い直す？'],['memo_5','⑤ 批評してほしい相手（自分で選ぶ）と、聞きたいこと']];
+
+const esc=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+let store={};try{store=JSON.parse(localStorage.getItem('tankyu-app')||'{}')||{}}catch(e){store={}}
+const save=()=>{try{localStorage.setItem('tankyu-app',JSON.stringify(store))}catch(e){}};
+const get=k=>store[k]??'';const set=(k,v)=>{store[k]=v;save()};
+const main=document.getElementById('main');
+let teacher=get('mode')==='t',view='map',sel=null,cardNo=1,gateNo=0,armed=null;
+const toastEl=document.getElementById('toast');let tt=null;
+const toast=t=>{toastEl.textContent=t;toastEl.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>toastEl.classList.remove('on'),1900)};
+const copy=async t=>{try{await navigator.clipboard.writeText(t);toast('コピーしました')}catch(e){toast('コピーできませんでした')}};
+const waza=(k,i)=>(k==='r'&&i===2)?WAZA_R2:WAZA[i];
+const nums=s=>{const out=[];String(s).replace(/^[^\d]+/,'').split('・').forEach(p=>{const m=p.match(/(\d+)〜(\d+)/);if(m){for(let n=+m[1];n<=+m[2];n++)out.push(n)}else{const n=parseInt(p,10);if(n)out.push(n)}});return out};
+const cardName=n=>(CARDS.find(c=>c.no===n)||{}).title||'';
+const gateOf=n=>GATES.find(g=>g.no===n);
+const cellName=id=>{const k=id[0],i=+id.slice(1);const d=D[k][i];return (i===0?COLS[k].name:i===5?'ゴール（'+COLS[k].name+'）':COLS[k].key+i)+' '+d.h};
+
+function mapView(){
+  const here=get('memo_cell');
+  let h=`<h2>探究の進め方マップ</h2><p class="lead">入口は3つ。途中でほかの列に移ってかまいません。コマを押すと、そこでやることが開きます。</p><div class="map"><div class="ph"></div><div class="start">気になること・好きなこと</div>`;
+  for(let i=0;i<6;i++){
+    h+=`<div class="ph">${PH[i]||''}</div>`;
+    KS.forEach((k,ci)=>{const d=D[k][i],C=COLS[k],id=k+i;
+      const lab=i===0?C.key:i===5?'ゴール':C.key+i;
+      const ref=i>=1&&i<=4?`<span class="ref">${esc(waza(k,i))}${KANMON[i]?' / '+esc(KANMON[i]):''}</span>`:'';
+      h+=`<button class="cell ${C.key}${here===id?' here':''}" style="--o:${ci*10+i}" data-cell="${id}" aria-expanded="${sel===id}"><span class="lab">${lab}${d.b?' ◆':''}${i===3?' ⇔':''}</span><b>${esc(d.h)}</b><small>${esc(d.s)}</small>${ref}</button>`});
+  }
+  return h+`</div><p class="note">◆＝分かれ道あり　⇔＝前のコマと行き来してよい　出典は調べ始めから記録する（技カード8）</p><div id="detail">${sel?detail(sel):''}</div>`;
+}
+function detail(id){
+  const k=id[0],i=+id.slice(1),d=D[k][i],C=COLS[k];
+  let h=`<div class="detail ${C.key}"><h3>${esc(cellName(id))}</h3>`;
+  if(i===0||i===5)return h+`<p>${esc(d.s)}</p></div>`;
+  const st=STAR[k+i];
+  h+=`<div class="star">★ 迷ったらまずこれ：${esc(st)}</div><p class="note">ほかの動きは必要に応じて選ぶ。必要な相談・許可は確認する。</p><ul>${d.acts.filter(t=>t!==st).map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`;
+  if(d.b)h+=`<h3>◆ ${esc(d.b.t)}</h3>${d.b.o.map(o=>`<div class="opt"><b>${esc(o[0])}</b>〔${esc(o[1])}〕<br>${esc(o[2])}</div>`).join('')}`;
+  h+=`<div class="ask"><b>${teacher?'先生の問いかけ':'自分に聞くこと'}：</b>${esc(teacher?d.q:(d.qs||d.q))}</div><div class="btns">`;
+  h+=nums(waza(k,i)).map(n=>`<a class="btn" href="#card-${n}">技${n} ${esc(cardName(n))}</a>`).join('');
+  h+=(KANMON[i]?nums(KANMON[i]):[]).map(n=>`<a class="btn" href="#gate-${n}">関門${n}</a>`).join('');
+  if(!teacher)h+=`<button class="btn p" data-here="${id}">今ここにする</button>`;
+  return h+`</div></div>`;
+}
+function secHtml(s){
+  if(s.note)return `<p class="note">${esc(s.note)}</p>`;
+  let h=`<h3>${esc(s.h)}</h3>`;
+  if(s.steps)h+=`<ol class="steps">${s.steps.map(([a,b])=>`<li><b>${esc(a)}</b><span>${esc(b)}</span></li>`).join('')}</ol>`;
+  if(s.list)h+=`<ul>${s.list.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`;
+  if(s.table){const T=s.table;h+=`<table class="stack"><thead><tr>${T.head.map(t=>`<th>${esc(t)}</th>`).join('')}</tr></thead><tbody>${T.rows.filter(r=>r.some(x=>x)).map(r=>`<tr>${r.map((x,j)=>`<td data-l="${esc(T.head[j])}">${j===0?'<b>'+esc(x)+'</b>':esc(x)}</td>`).join('')}</tr>`).join('')}</tbody></table>`}
+  return h;
+}
+function cardsView(){
+  const c=CARDS.find(x=>x.no===cardNo)||CARDS[0];
+  return `<h2>技カード</h2><p class="lead">困ったときに、今のコマに書いてある番号のカードを開く。</p><div class="two"><div class="list">${CARDS.map(x=>`<button data-card="${x.no}" aria-current="${x.no===c.no}">技${x.no}　${esc(x.title)}</button>`).join('')}</div>
+  <article><p class="note">技カード ${c.no}　使うコマ：${esc(c.use)}</p><h2>${esc(c.title)}</h2><p>${esc(c.aim)}</p>${c.sec.map(secHtml).join('')}
+  <div class="field"><label for="cardnote">やってみたこと・気づき</label><textarea id="cardnote" data-k="card_${c.no}"></textarea></div></article></div>`;
+}
+function gatesView(){
+  const tabs=`<div class="list" style="flex-direction:row;flex-wrap:wrap;margin-bottom:14px"><button data-gate="0" aria-current="${gateNo===0}">使い方</button>${GATES.map(g=>`<button data-gate="${g.no}" aria-current="${gateNo===g.no}">関門${g.no}</button>`).join('')}</div>`;
+  if(!gateNo)return `<h2>関門シート</h2><p class="lead">出発する前に、誰かと一緒に「試運転」してから出る。</p>${tabs}<div class="stance">${esc(STANCE)}</div>
+  <h3>流れ</h3><ol class="steps">${FLOW.map(([a,b])=>`<li><b>${a}</b><span>${b}</span></li>`).join('')}</ol>
+  <p class="note">関門2と4の試運転は、続けて1回で。目安は1人5分で交代：目的を説明1分→試して記録の表に入れる2分→分かること・まだ分からないこと1分→一つ直す1分。計画を書く時間や測定の準備は別にとる。出発の前に、必要な許可・同意は「校内の決まり」で別に確認する。</p>
+  <h3>試運転の相手の約束</h3><ul>${RULES.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>
+  <h3>探究の7つの関門</h3><table class="stack"><thead><tr><th></th><th>関門</th><th>いつ</th><th>たどるための問い</th><th>シート</th></tr></thead><tbody>${SEVEN.map(r=>`<tr>${r.map((x,j)=>`<td data-l="${['','関門','いつ','問い','シート'][j]}">${j===1?'<b>'+esc(x)+'</b>':esc(x)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  const g=gateOf(gateNo);if(!g){gateNo=0;return gatesView()}
+  const p=`g${g.no}_`;
+  let h=`<h2>関門${g.no}　${esc(g.title)}</h2><p class="note">${esc(g.when)}</p><p class="lead">${esc(g.aim)}</p>${tabs}<h3>${esc(g.writeHead||'書き込む（出発の前に）')}</h3>`;
+  h+=g.fields.map(([lab,hint],j)=>`<div class="field"><label for="${p}f${j}">${esc(lab)}</label>${hint?`<div class="h">${esc(hint)}</div>`:''}<textarea id="${p}f${j}" data-k="${p}f${j}"${g.table&&j===g.table.at?` placeholder="${esc(g.table.cols.map(x=>x||'（見出し）').join('｜'))}"`:''}></textarea></div>`).join('');
+  h+=`<h3>${esc(g.checkHead||'一緒に確かめる（試運転の相手と）')}</h3><div class="checks">${g.checks.map((t,j)=>`<label><input type="checkbox" data-k="${p}c${j}"><span>${esc(t)}</span></label>`).join('')}<p style="margin:8px 0 0"><b>つながらなかったら → ${esc(g.fail)}</b></p>${g.note?`<p class="note">${esc(g.note)}</p>`:''}</div>`;
+  h+=`<div class="field"><label for="${p}pn">試運転の相手</label><input type="text" id="${p}pn" data-k="${p}pn" placeholder="名前"></div>
+  <div class="field"><label for="${p}pr">立場</label><select id="${p}pr" data-k="${p}pr"><option value=""></option>${['先輩','友だち','卒業生','先生','その他'].map(x=>`<option>${x}</option>`).join('')}</select></div>
+  <div class="field"><label for="${p}pc">ひとこと</label><div class="h">分からなかったこと／詳しい人に相談した方がよさそうなこと</div><textarea id="${p}pc" data-k="${p}pc"></textarea></div>`;
+  const L=g.exLabels||['粗い：','通る：'];
+  h+=`<details><summary>例を見る</summary><p><b>${esc(L[0])}</b>${esc(g.ex[0])}</p><p><b>${esc(L[1])}</b>${esc(g.ex[1])}</p></details>`;
+  return h+`<div class="btns"><button class="btn p" data-copy="gate">このシートをコピー</button><button class="btn" data-clear="${p}">このシートを消す</button></div>`;
+}
+function gateText(g){const p=`g${g.no}_`;return [`関門${g.no} ${g.title}`].concat(g.fields.map(([lab],j)=>`${lab}\n${get(p+'f'+j)}`)).concat(g.checks.map((t,j)=>`${get(p+'c'+j)?'[x]':'[ ]'} ${t}`)).concat([`試運転の相手：${get(p+'pn')}（${get(p+'pr')}）`,`ひとこと：${get(p+'pc')}`]).join('\n')}
+function memoView(){
+  const cells=[];KS.forEach(k=>{for(let i=0;i<6;i++)cells.push(k+i)});
+  const hist=Array.isArray(store.memo_hist)?store.memo_hist:[];
+  return `<h2>わたしの探究メモ</h2><p class="lead">書き直したら「日付をつけて残す」。前の内容は消さずに残ります。</p>
+  <div class="field"><label for="mt">テーマ</label><input type="text" id="mt" data-k="memo_theme"></div>
+  <div class="field"><label for="mc">今いるコマ</label><select id="mc" data-k="memo_cell"><option value=""></option>${cells.map(id=>`<option value="${id}">${esc(cellName(id))}</option>`).join('')}</select></div>
+  ${MEMO.map(([k,l])=>`<div class="field"><label for="${k}">${esc(l)}</label><textarea id="${k}" data-k="${k}"></textarea></div>`).join('')}
+  <div class="checks"><label><input type="checkbox" data-k="memo_src"><span>調べた出典を残した（技カード8）</span></label></div>
+  <div class="btns"><button class="btn p" data-snap>日付をつけて残す</button><button class="btn" data-copy="memo">メモをコピー</button></div>
+  <h3>これまでの記録</h3>${hist.length?hist.slice().reverse().map(e=>`<div class="hist"><b>${esc(e.date)}</b>　${esc(e.cell?cellName(e.cell):'')}<br>${e.memo_theme?`<span class="note">テーマ</span> ${esc(e.memo_theme)}<br>`:''}${MEMO.map(([k,l])=>e[k]?`<span class="note">${esc(l.slice(0,2))}</span> ${esc(e[k])}<br>`:'').join('')}</div>`).join(''):'<p class="note">まだありません。</p>'}`;
+}
+function memoText(){const cur=[`テーマ：${get('memo_theme')}`,`今いるコマ：${get('memo_cell')?cellName(get('memo_cell')):''}`].concat(MEMO.map(([k,l])=>`${l}\n${get(k)}`));
+  const hist=(Array.isArray(store.memo_hist)?store.memo_hist:[]).map(e=>`--- ${e.date} ${e.cell?cellName(e.cell):''}\n`+MEMO.map(([k,l])=>e[k]?`${l}：${e[k]}`:'').filter(Boolean).join('\n'));
+  return cur.concat(['','【これまでの記録】']).concat(hist).join('\n')}
+function guideView(){
+  return `<h2>指導の手引き</h2><p class="lead">全員に全部配らなくてよい。生徒が止まったコマの技カード・関門シートを開く。</p>
+  <h3>指導の留意点</h3><ul>${NOTES.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>
+  <h3>渡し方</h3><ul>${HOW.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>
+  <h3>生徒の計画や原稿を見るときの問いかけ</h3><table class="stack"><thead><tr><th>技カード</th><th>見るポイント・問いかけ</th></tr></thead><tbody>${TEACHER.map(([a,b])=>`<tr><td data-l="技カード"><b>${esc(a)}</b></td><td data-l="問いかけ">${esc(b)}</td></tr>`).join('')}</tbody></table>
+  <h3>校内の決まり（この端末に下書き）</h3><p class="note">学年・担当で話し合って決め、生徒にも配布・掲示する。</p>
+  ${LOCAL.map(([t,s],j)=>`<div class="field"><label for="lr${j}">${esc(t)}</label>${s?`<div class="h">${esc(s)}</div>`:''}<textarea id="lr${j}" data-k="local_${j}"></textarea></div>`).join('')}
+  <div class="btns"><button class="btn" data-copy="local">校内の決まりをコピー</button></div>`;
+}
+function render(){
+  document.body.classList.toggle('teacher',teacher);
+  document.getElementById('mS').setAttribute('aria-pressed',!teacher);document.getElementById('mT').setAttribute('aria-pressed',teacher);
+  main.innerHTML=view==='cards'?cardsView():view==='gates'?gatesView():view==='memo'?memoView():view==='guide'?guideView():mapView();
+  document.querySelectorAll('nav a').forEach(a=>a.setAttribute('aria-current',a.getAttribute('href')==='#'+view?'page':'false'));
+  const cur=main.querySelector('.list button[aria-current=true]');if(cur&&window.innerWidth<=600)cur.scrollIntoView({inline:'center',block:'nearest'});
+  main.querySelectorAll('[data-k]').forEach(el=>{const v=store[el.dataset.k];if(el.type==='checkbox')el.checked=!!v;else el.value=v??''});
+}
+function route(){
+  let h=location.hash.slice(1)||'map',m;
+  if((m=h.match(/^card-(\d+)$/))){cardNo=+m[1];h='cards'}
+  if((m=h.match(/^gate-(\d+)$/))){gateNo=+m[1];h='gates'}
+  if(!['map','cards','gates','memo','guide'].includes(h))h='map';
+  if(h==='memo'&&teacher)h='map';if(h==='guide'&&!teacher)h='map';
+  view=h;render();window.scrollTo(0,0);
+}
+main.addEventListener('input',e=>{const el=e.target;if(!el.dataset.k)return;set(el.dataset.k,el.type==='checkbox'?el.checked:el.value);if(el.dataset.k==='memo_cell')toast('今いるコマを記録しました')});
+main.addEventListener('change',e=>{const el=e.target;if(el.dataset.k&&(el.type==='checkbox'||el.tagName==='SELECT'))set(el.dataset.k,el.type==='checkbox'?el.checked:el.value)});
+main.addEventListener('click',e=>{
+  const t=e.target.closest('button');if(!t)return;
+  if(t.dataset.cell){const id=t.dataset.cell;sel=sel===id?null:id;main.querySelectorAll('.cell').forEach(c=>c.setAttribute('aria-expanded',c.dataset.cell===sel));const dt=document.getElementById('detail');dt.innerHTML=sel?detail(sel):'';if(sel&&window.innerWidth<900)dt.scrollIntoView({block:'start'});return}
+  if(t.dataset.card){cardNo=+t.dataset.card;history.replaceState(null,'','#card-'+cardNo);render();return}
+  if(t.dataset.gate!==undefined){gateNo=+t.dataset.gate;history.replaceState(null,'',gateNo?'#gate-'+gateNo:'#gates');render();return}
+  if(t.dataset.here){set('memo_cell',t.dataset.here);toast('「今ここ」にしました');render();return}
+  if(t.hasAttribute('data-snap')){const e2={date:new Date().toLocaleString('ja-JP'),cell:get('memo_cell')};MEMO.forEach(([k])=>e2[k]=get(k));e2.memo_theme=get('memo_theme');const hs=Array.isArray(store.memo_hist)?store.memo_hist:[];hs.push(e2);set('memo_hist',hs);toast('日付をつけて残しました');render();return}
+  if(t.dataset.copy==='gate'){copy(gateText(gateOf(gateNo)));return}
+  if(t.dataset.copy==='memo'){copy(memoText());return}
+  if(t.dataset.copy==='local'){copy(LOCAL.map(([a],j)=>`${a}\n${get('local_'+j)}`).join('\n\n'));return}
+  if(t.dataset.clear){const p=t.dataset.clear;if(armed!==p){armed=p;t.textContent='もう一度押すと消えます';setTimeout(()=>{if(armed===p){armed=null;t.textContent='このシートを消す'}},3000);return}
+    Object.keys(store).forEach(k=>{if(k.startsWith(p))delete store[k]});save();armed=null;toast('消しました');render()}
+});
+document.getElementById('mS').addEventListener('click',()=>{teacher=false;set('mode','s');route()});
+document.getElementById('mT').addEventListener('click',()=>{teacher=true;set('mode','t');route()});
+window.addEventListener('hashchange',route);
+route();
+}
+</script></body></html>
